@@ -8,7 +8,11 @@
 import SwiftUI
 
 struct ContentView: View {
+    #if os(macOS)
     @State private var manager = BLEPeripheralManager()
+    #else
+    @State private var manager = BLECentralManager()
+    #endif
     var body: some View {
         Text("BLE Hit & Blow")
     }
