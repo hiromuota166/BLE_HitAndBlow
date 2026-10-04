@@ -8,6 +8,9 @@
 import CoreBluetooth
 import Observation
 
+// Central（受け取る側・お客さん）として動くクラス
+// Service UUID で看板を探して接続し、Characteristic の値を Read して receivedText に入れる
+// @Observable なので、receivedText が変わると SwiftUI の画面が自動で描き直される
 @Observable
 final class BLECentralManager: NSObject {
     private var centralManager: CBCentralManager!
@@ -24,7 +27,10 @@ final class BLECentralManager: NSObject {
     }
 }
 
+// CBCentralManager（スキャン・接続の係）からの知らせを受け取る
+// 流れ: poweredOn → スキャン → didDiscover → connect → didConnect → Service を探す
 extension BLECentralManager: CBCentralManagerDelegate {
+    // Bluetooth の状態が変わると呼ばれる（必須のメソッド）。poweredOn になったらスキャンを始める
     func centralManagerDidUpdateState(_ central: CBCentralManager) {
         guard central.state == .poweredOn else {
             print("まだ使えない: \(central.state.rawValue)")
@@ -33,6 +39,7 @@ extension BLECentralManager: CBCentralManagerDelegate {
         central.scanForPeripherals(withServices: [serviceUUID], options: nil)
     }
 
+    // 看板を見つけると呼ばれる。相手を保持してスキャンを止め、接続する
     func centralManager(_ central: CBCentralManager, didDiscover peripheral: CBPeripheral,
                         advertisementData: [String: Any], rssi RSSI: NSNumber) {
         print("見つけた: \(peripheral.name ?? "名前なし") RSSI: \(RSSI)")
@@ -54,6 +61,8 @@ extension BLECentralManager: CBCentralManagerDelegate {
     }
 }
 
+// 接続した相手（CBPeripheral）からの知らせを受け取る
+// 流れ: didDiscoverServices → Characteristic を探す → didDiscoverCharacteristicsFor → Read → didUpdateValueFor
 extension BLECentralManager: CBPeripheralDelegate {
     // Service が見つかったら呼ばれる
     func peripheral(_ peripheral: CBPeripheral, didDiscoverServices error: Error?) {

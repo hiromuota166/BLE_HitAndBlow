@@ -7,6 +7,7 @@
 
 import SwiftUI
 
+// アプリの入口（@main）。起動すると最初の画面として ContentView を表示する
 @main
 struct BLE_HitAndBlowApp: App {
     var body: some Scene {
