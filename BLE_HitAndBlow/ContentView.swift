@@ -14,7 +14,11 @@ struct ContentView: View {
     @State private var manager = BLECentralManager()
     #endif
     var body: some View {
-        Text("BLE Hit & Blow")
+        #if os(macOS)
+        Text("Mac: 送信側")
+        #else
+        Text(manager.receivedText)
+        #endif
     }
 }
 
