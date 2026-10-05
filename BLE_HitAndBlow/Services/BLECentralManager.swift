@@ -9,7 +9,7 @@ import CoreBluetooth
 import Observation
 
 // Central（受け取る側・お客さん）として動くクラス
-// Service UUID で看板を探して接続し、Characteristic の値を Read して receivedText に入れる
+// Service UUID で看板を探して接続し、Characteristic の通知を購読して、届いた値を receivedText に入れる
 // @Observable なので、receivedText が変わると SwiftUI の画面が自動で描き直される
 @Observable
 final class BLECentralManager: NSObject {
@@ -62,7 +62,7 @@ extension BLECentralManager: CBCentralManagerDelegate {
 }
 
 // 接続した相手（CBPeripheral）からの知らせを受け取る
-// 流れ: didDiscoverServices → Characteristic を探す → didDiscoverCharacteristicsFor → Read → didUpdateValueFor
+// 流れ: didDiscoverServices → Characteristic を探す → didDiscoverCharacteristicsFor → 通知を購読 → 値が届くたびに didUpdateValueFor
 extension BLECentralManager: CBPeripheralDelegate {
     // Service が見つかったら呼ばれる
     func peripheral(_ peripheral: CBPeripheral, didDiscoverServices error: Error?) {
@@ -73,7 +73,12 @@ extension BLECentralManager: CBPeripheralDelegate {
     // Characteristic が見つかったら呼ばれる
     func peripheral(_ peripheral: CBPeripheral, didDiscoverCharacteristicsFor service: CBService, error: Error?) {
         guard let characteristic = service.characteristics?.first(where: { $0.uuid == characteristicUUID }) else { return }
-        peripheral.readValue(for: characteristic)
+        peripheral.setNotifyValue(true, for: characteristic)
+    }
+
+    // 通知の受け取り設定が変わると呼ばれる
+    func peripheral(_ peripheral: CBPeripheral, didUpdateNotificationStateFor characteristic: CBCharacteristic, error: Error?) {
+        print(error == nil ? "通知ON: \(characteristic.isNotifying)" : "通知の設定に失敗: \(error!)")
     }
 
     // 値が届いたら呼ばれる

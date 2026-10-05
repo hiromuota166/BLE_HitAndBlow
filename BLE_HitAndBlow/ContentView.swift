@@ -14,12 +14,17 @@ struct ContentView: View {
     // @State で持つことで body が何度呼ばれても同じインスタンスが生き続け、delegate の知らせを受け取れる
     #if os(macOS)
     @State private var manager = BLEPeripheralManager()
+    @State private var text = ""
     #else
     @State private var manager = BLECentralManager()
     #endif
     var body: some View {
         #if os(macOS)
-        Text("Mac: 送信側")
+        VStack {
+            TextField("送る文字", text: $text)
+            Button("送る") { manager.send(text) }
+        }
+        .padding()
         #else
         Text(manager.receivedText)
         #endif
