@@ -33,18 +33,27 @@ final class BLECentralManager: NSObject {
         guard let peripheral, let characteristic, let data = text.data(using: .utf8) else { return }
         peripheral.writeValue(data, for: characteristic, type: .withResponse)
     }
+    
+    // 相手のことを忘れて、もう一度探し始める
+    private func resetAndScan() {
+        peripheral = nil
+        characteristic = nil
+        centralManager.scanForPeripherals(withServices: [serviceUUID], options: nil)
+        print("探し始めた")
+    }
 }
 
 // CBCentralManager（スキャン・接続の係）からの知らせを受け取る
 // 流れ: poweredOn → スキャン → didDiscover → connect → didConnect → Service を探す
 extension BLECentralManager: CBCentralManagerDelegate {
-    // Bluetooth の状態が変わると呼ばれる（必須のメソッド）。poweredOn になったらスキャンを始める
+    // Bluetooth の状態が変わると呼ばれる（必須のメソッド）。poweredOn になったら探し始める
+    // OFF → ON のときは切断の知らせが来ないことがあるので、ここでも片付けてから探す
     func centralManagerDidUpdateState(_ central: CBCentralManager) {
         guard central.state == .poweredOn else {
             print("まだ使えない: \(central.state.rawValue)")
             return
         }
-        central.scanForPeripherals(withServices: [serviceUUID], options: nil)
+        resetAndScan()
     }
 
     // 看板を見つけると呼ばれる。相手を保持してスキャンを止め、接続する
@@ -63,9 +72,17 @@ extension BLECentralManager: CBCentralManagerDelegate {
         peripheral.discoverServices([serviceUUID])
     }
 
-    // 接続に失敗したら呼ばれる
+    // 接続に失敗したら呼ばれる。探し直す
     func centralManager(_ central: CBCentralManager, didFailToConnect peripheral: CBPeripheral, error: Error?) {
         print("接続失敗: \(String(describing: error))")
+        resetAndScan()
+    }
+
+    // 接続が切れたら呼ばれる。探し直す
+    // 自分で cancelPeripheralConnection したときも呼ばれる（そのときは error が nil）
+    func centralManager(_ central: CBCentralManager, didDisconnectPeripheral peripheral: CBPeripheral, error: Error?) {
+        print("切断された: \(String(describing: error))")
+        resetAndScan()
     }
 }
 
@@ -101,5 +118,12 @@ extension BLECentralManager: CBPeripheralDelegate {
         guard let data = characteristic.value else { return }
         receivedText = String(data: data, encoding: .utf8) ?? "文字にできませんでした"
         print("受け取った: \(receivedText)")
+    }
+    
+    // 相手の Service が使えなくなったら呼ばれる
+    func peripheral(_ peripheral: CBPeripheral, didModifyServices invalidatedServices: [CBService]) {
+        print("Service が消えた: \(invalidatedServices.map(\.uuid))")
+        guard invalidatedServices.contains(where: { $0.uuid == serviceUUID }) else { return }
+        centralManager.cancelPeripheralConnection(peripheral)
     }
 }
