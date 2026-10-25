@@ -8,7 +8,7 @@ import Playgrounds
 
 class GameLogic {
     let gameLevel: Int = 3
-    func gameResult(ans: [Int], guesses: [Int])-> (Int, Int)? {
+    func gameResult(ans: [Int], guesses: [Int])-> GuessResult? {
         guard isValid(ans) && isValid(guesses) else { return nil }
         var hit = 0
         var blow = 0
@@ -19,7 +19,7 @@ class GameLogic {
                 blow += 1
             }
         }
-        return (hit, blow)
+        return GuessResult(hit: hit, blow: blow)
     }
     
     func isValid (_ digits: [Int]) -> Bool {

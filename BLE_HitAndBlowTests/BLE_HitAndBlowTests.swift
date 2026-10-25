@@ -10,15 +10,14 @@ import Testing
 
 struct BLE_HitAndBlowTests {
     @Test("結果返却が正しいか")
-    func result() throws {
+    func result() {
         let ans = [5,2,4]
         let guesses = [2,0,4]
         let logic = GameLogic()
         
         let result = logic.gameResult(ans: ans, guesses: guesses)
-        let validResult = try #require(result)
         
-        #expect(validResult == (1,1))
+        #expect(result == GuessResult(hit: 1,blow: 1))
     }
 
     @Test("ansが重複あり")
